@@ -1,74 +1,71 @@
 version: 2.1
-jobs: 
+jobs:
   build:
     docker:
-      - image: cimg/node:15.5.1-browsers
-    steps: 
+      - image: circleci/node:dubnium-browsers
+    steps:
       - checkout
-      - restore_cache: 
-          keys: 
+      - restore_cache:
+          keys:
             - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
             - yarn-packages
       - run: yarn global add node-gyp && yarn install
       - save_cache:
           key: yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
           paths:
-          - node_modules
+            - node_modules
   test:
     docker:
-      - image: cimg/node:15.5.1-browsers
+      - image: circleci/node:dubnium-browsers
     steps:
       - checkout
       - restore_cache:
           keys:
-            key: yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
-      - run:
-        - name: Start test
-        - command : yarn test
-  build-in-prod:
-    docker:
-      - image: cimg/node:15.5.1-browsers
-    steps: 
-      - checkout
-      - restore_cache: 
-          keys: 
             - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
       - run:
-        - name: Build the project
-        - command : yarn run build
+          name: Start test
+          command: yarn test
+  build-in-prod:
+    docker:
+      - image: circleci/node:dubnium-browsers
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
       - run:
-        - name: Copy build
-        - command: |
-            ls
-            cp build/ /tmp/build -r
+          name: Build 
+          command : yarn run build
+      - run:
+          name: Copy build
+          command: |
+            cp dist/ /tmp/dist -r
       - store_artifacts:
-          path: /tmp/build
+          path: /tmp/dist
       - persist_to_workspace:
           root: /tmp
           paths:
-            - build
-  deploy: 
+            - dist
+  deploy:
     docker:
-      - image: cimg/node:15.5.1-browsers
+      - image: circleci/node:dubnium-browsers
     working_directory: ~/deploy-netlfify
     steps:
       - attach_workspace:
           at: /tmp
       - run:
-          name: Deploy app
+          name: Deploy on netlify
           command: |
             sudo npm install -g --silent netlify-cli
-            ls /tmp
-            netlify deploy --prod --auth $NETLIFY_TOKEN --dir=/tmp/build --site $NETLIFY_SITE_ID
+            netlify deploy --prod --auth $NETLIFY_TOKEN --dir=/tmp/dist --site $NETLIFY_SITE_ID
 workflows:
-  build_deploy: 
-    jobs: 
+  build_deploy:
+    jobs:
       - build
       - build-in-prod:
-          requires: 
+          requires:
             - build
       - deploy:
           context: netlify
-          requires: 
-            - build 
-            - build-in-prod 
+          requires:
+            - build-in-prod
