@@ -92,3 +92,7 @@ workflows:
           context: netlify
           requires:
             - build-in-prod
+      - docker-build-push:
+          context: Docker
+          requires: 
+            - build 
