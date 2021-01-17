@@ -50,6 +50,8 @@ jobs:
             - dist
 
   docker-build-push:
+    environment:
+      IMAGE_NAME: grennrich/devopstpfinal-front
     working_directory: /dockerapp
     docker:
       - image: docker:17.05.0-ce-git
@@ -63,10 +65,10 @@ jobs:
           name: Login and push to DockerHub
           command: |
             docker login -u grennrich -p $DOCKER_HUB_PASSWORD
-            docker tag app grennrich/devopstpfinal-front:$CIRCLE_BUILD_NUM
-            docker tag app grennrich/devopstpfinal-front:latest
-            docker push grennrich/devopstpfinal-front:$CIRCLE_BUILD_NUM
-            docker push grennrich/devopstpfinal-front:latest
+            docker tag app $IMAGE_NAME:$CIRCLE_BUILD_NUM
+            docker tag app $IMAGE_NAME:latest
+            docker push $IMAGE_NAME:$CIRCLE_BUILD_NUM
+            docker push $IMAGE_NAME:latest
 
   deploy:
     docker:
