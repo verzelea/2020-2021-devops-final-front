@@ -14,6 +14,7 @@ jobs:
           key: yarn-packages-{{ checksum "yarn.lock" }}-{{ .Environment.CACHE_VERSION }}
           paths:
             - node_modules
+
   test:
     docker:
       - image: circleci/node:dubnium-browsers
@@ -25,6 +26,7 @@ jobs:
       - run:
           name: Start test
           command: yarn test
+
   build-in-prod:
     docker:
       - image: circleci/node:dubnium-browsers
@@ -46,6 +48,26 @@ jobs:
           root: /tmp
           paths:
             - dist
+
+  docker-build-push:
+    working_directory: /dockerapp
+    docker:
+      - image: docker:17.05.0-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          command: |
+            docker build --cache-from=app -t app .
+      - run: 
+          name: Login and push to DockerHub
+          command: |
+            docker login -u grennrich -p $DOCKER_HUB_PASSWORD
+            docker tag app grennrich/devopstpfinal-front:$CIRCLE_BUILD_NUM
+            docker tag app grennrich/devopstpfinal-front:latest
+            docker push grennrich/devopstpfinal-front:$CIRCLE_BUILD_NUM
+            docker push grennrich/devopstpfinal-front:latest
+
   deploy:
     docker:
       - image: circleci/node:dubnium-browsers
@@ -58,6 +80,7 @@ jobs:
           command: |
             sudo npm install -g --silent netlify-cli
             netlify deploy --prod --auth $NETLIFY_TOKEN --dir=/tmp/dist --site $NETLIFY_SITE_ID
+
 workflows:
   build_deploy:
     jobs:
